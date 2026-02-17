@@ -1,96 +1,100 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+import React, { useEffect, useState } from 'react'
+import axios from 'axios'
+import { toast } from 'react-hot-toast'
 
-const Users = () => {
+const Table = () => {
+
   const [users, setUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [name, setName] = useState("");
-
-  const fetchUsers = async () => {
-    const res = await axios.get("http://localhost:5000/api/getusers");
-    setUsers(res.data);
-  };
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
 
   useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get("http://localhost:2000/api/getusers");
+        console.log(response);
+        setUsers(response.data.users);
+      }
+      catch (err) {
+        console.log("Error Fetching Users", err);
+      }
+    }
     fetchUsers();
-  }, []);
+  }, [users])
 
-  const handleEdit = (user) => {
-    setSelectedUser(user);
-    setName(user.name);
-  };
+  const handleEdit = (u) => {
+    setEditingId(u._id);
+    setEditName(u.name);
+  }
 
-  const handleSave = async () => {
-    await axios.put(
-      `http://localhost:5000/api/edituser/${selectedUser._id}`,
-      { name }
-    );
-    setSelectedUser(null);
-    setName("");
-    fetchUsers();
-  };
+  const saveEdit = async(id) => {
+    try{
+      const response = await axios.put(`http://localhost:2000/api/edituser/${id}`, {
+        name : editName
+      });
+      console.log(response);
+      setEditingId(null);
+      toast.success(response.data.message);
+    }
+    catch(err){
+      console.log("Error updating user", err);
+    }
+  }
 
-  const handleCancel = () => {
-    setSelectedUser(null);
-    setName("");
-  };
+
 
   return (
-    <div className="flex h-screen">
-      <div className="w-2/3 p-6">
-        <h2 className="text-xl font-bold mb-4">Users</h2>
-
-        <table className="table table-zebra w-full">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u, i) => (
-              <tr key={u._id}>
-                <th>{i + 1}</th>
-                <td>{u.name}</td>
-                <td>
-                  <button
-                    className="btn btn-info btn-sm"
-                    onClick={() => handleEdit(u)}
-                  >
-                    Edit
-                  </button>
-                </td>
+    <>
+      <div className='py-24'>
+        <div className="overflow-x-auto rounded-box border border-base-content/5 bg-base-100 w-[450px] justify-self-center">
+          <table className="table">
+            {/* head */}
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
 
-      {selectedUser && (
-        <div className="w-1/3 bg-base-200 p-6 border-l">
-          <h2 className="text-lg font-bold mb-4">Edit User</h2>
+              {/* row 1 */}
+              {users.map((u, i) => (
+                <tr>
+                  <th>{i+1}</th>
+                  <td>
+                    
+                    {
+                    editingId == u._id ?
+                    <input type="text" className='border border-gray-300 p-2' value={editName} onChange={(e) => setEditName(e.target.value)} />
+                    :
+                    u.name
+                    }
+                    </td>
 
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="input input-bordered w-full mb-4"
-            placeholder="Enter name"
-          />
+                  <td className='flex gap-2'>
 
-          <div className="flex gap-2">
-            <button className="btn btn-success" onClick={handleSave}>
-              Save
-            </button>
-            <button className="btn btn-outline" onClick={handleCancel}>
-              Cancel
-            </button>
-          </div>
+                    {editingId == u._id ?
+                    <>
+                    <button className="btn btn-soft btn-success" onClick={() => saveEdit(u._id)}>Save</button>
+                    <button className="btn btn-soft btn-warning" onClick={() => setEditingId(null)}>Cancel</button>
+                    </>
+                  :
+                    <>
+                    <button className="btn btn-soft btn-info" onClick={() => handleEdit(u)}>Edit</button>
+                    <button className="btn btn-soft btn-error">Delete</button>
+                    </>
+                    }
+                  </td>
+                </tr>
+              ))}
+
+            </tbody>
+          </table>
         </div>
-      )}
-    </div>
-  );
-};
+      </div>
+    </>
+  )
+}
 
-export default Users;
+export default Table

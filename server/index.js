@@ -1,53 +1,50 @@
 const express = require("express");
-const mongoose = require("mongoose");
+const connectDB = require("./config/db_connection");
+const User = require("./models/users");
 const cors = require("cors");
-
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-// DB connect
-mongoose
-  .connect("mongodb://127.0.0.1:27017/cruddb")
-  .then(() => console.log("DB Connected"))
-  .catch((err) => console.log(err));
+connectDB();
 
-// schema
-const userSchema = new mongoose.Schema({
-  name: String,
-});
+app.post("/api/adduser", async(req, res) => {
+    try{
+        const { nameField } = req.body;
+        await User.insertOne({name : nameField});
+        res.status(200).send({message: "User added successfully"});
+    }
+    catch(err){
+        console.log("Error Inserting User", err);
+    }
+})
 
-const User = mongoose.model("User", userSchema);
+app.get("/api/getusers", async(req, res) => {
+    try{
+        const users = await User.find();
+        res.status(200).send({users});
+    }
+    catch(err){
+        console.log("Error Fetching Data", err);
+    }
+})
 
-// GET users
-app.get("/api/getusers", async (req, res) => {
-  try {
-    const users = await User.find();
-    res.status(200).send(users);
-  } catch (err) {
-    res.status(500).send("Error fetching users");
-  }
-});
 
-// UPDATE user
-app.put("/api/edituser/:id", async (req, res) => {
-  try {
-    const updatedUser = await User.findByIdAndUpdate(
-      req.params.id,
-      { name: req.body.name },
-      { new: true }
-    );
+app.put("/api/edituser/:id", async(req, res) => {
+    const { name } = req.body;
+    try{
+        await User.updateOne({_id: req.params.id}, {$set: {name: name}});
+        res.status(200).send({message: "User updated successfully"});
+    }
+    catch(err){
+        console.log("Error updating user", err);
+    }
+})
 
-    res.status(200).send({
-      message: "User updated successfully",
-      user: updatedUser,
-    });
-  } catch (err) {
-    res.status(500).send("Update failed");
-  }
-});
 
-// server
-app.listen(5000, () => {
-  console.log("Server started on port 5000");
-});
+
+
+app.listen(2000, () => {
+    console.log("Server Started");
+})
